@@ -19,7 +19,9 @@ def pep(session):
         if response is None:
             return
         soup = BeautifulSoup(response.text, 'lxml')
-        main_div = find_tag(soup, 'dl', attrs={'class': 'rfc2822 field-list simple'})
+        main_div = find_tag(
+            soup, 'dl', attrs={'class': 'rfc2822 field-list simple'}
+        )
         status = find_tag(main_div, "abbr").text
         return status
 
@@ -34,15 +36,19 @@ def pep(session):
     inconsistencies = []
     for i in tqdm(sections_by_pep):
         status_type = find_tag(i, "abbr").text
-        detail_url = find_tag(i, "a", attrs={"class": "pep reference internal"})["href"]
+        detail_url = find_tag(
+            i, "a", attrs={"class": "pep reference internal"}
+        )["href"]
         status_in_cart = detail_pep(urljoin(MAIN_PEP_URL, detail_url))
-        if status_in_cart not in [x for value in EXPECTED_STATUS.values() for x in value]:
+        status_list = [x for value in EXPECTED_STATUS.values() for x in value]
+        if status_in_cart not in status_list:
             inconsistencies.append(
-                (EXPECTED_STATUS[status_type[1:]],
-                status_in_cart,
-                urljoin(MAIN_PEP_URL, detail_url)
+                (
+                    EXPECTED_STATUS[status_type[1:]],
+                    status_in_cart,
+                    urljoin(MAIN_PEP_URL, detail_url)
                 )
-        )
+            )
         pep_real_status.append(status_in_cart)
 
     if inconsistencies:
@@ -63,6 +69,7 @@ def pep(session):
     results.append(("Total", all_pep))
     return results
 
+
 def whats_new(session):
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
     response = get_response(session, whats_new_url)
@@ -71,7 +78,9 @@ def whats_new(session):
     soup = BeautifulSoup(response.text, 'lxml')
     main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
     div_with_ul = find_tag(main_div, 'div', attrs={'class': 'toctree-wrapper'})
-    sections_by_python = div_with_ul.find_all('li', attrs={'class': 'toctree-l1'})
+    sections_by_python = div_with_ul.find_all(
+        'li', attrs={'class': 'toctree-l1'}
+    )
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     for section in tqdm(sections_by_python):
         version_a_tag = find_tag(section, 'a')
@@ -82,8 +91,7 @@ def whats_new(session):
             continue
         soup = BeautifulSoup(response.text, 'lxml')
         h1 = find_tag(soup, 'h1').text.replace("\n", " ")
-        dl = find_tag(soup,'dl').text.replace("\n", " ")
-        # p = soup.find('p').text
+        dl = find_tag(soup, 'dl').text.replace("\n", " ")
         results.append((version_link, h1, dl))
     return results
 
@@ -106,7 +114,7 @@ def latest_versions(session):
     pattern = r'Python (?P<version>\d\.\d+) \((?P<status>.*)\)'
     results = [('Ссылка на документацию', 'Версия', 'Статус')]
     for a_tag in a_tags:
-        link= a_tag["href"]
+        link = a_tag["href"]
         text_match = re.search(pattern, str(a_tag))
         if text_match:
             version, status = text_match.groups()
@@ -115,6 +123,7 @@ def latest_versions(session):
             status = ''
         results.append((link, version, status))
     return results
+
 
 def download(session):
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
@@ -125,7 +134,9 @@ def download(session):
     soup = BeautifulSoup(response.text, 'lxml')
     table_tag = find_tag(soup, 'table', {'class': 'docutils'})
 
-    pdf_a4_tag = find_tag(table_tag, 'a', {'href': re.compile(r'.+pdf-a4\.zip$')})
+    pdf_a4_tag = find_tag(
+        table_tag, 'a', {'href': re.compile(r'.+pdf-a4\.zip$')}
+    )
     pdf_a4_link = pdf_a4_tag['href']
     archive_url = urljoin(downloads_url, pdf_a4_link)
     filename = archive_url.split('/')[-1]
@@ -137,12 +148,14 @@ def download(session):
         file.write(response.content)
     logging.info(f'Архив был загружен и сохранён: {archive_path}')
 
+
 MODE_TO_FUNCTION = {
     'whats-new': whats_new,
     'latest-versions': latest_versions,
     'download': download,
     'pep': pep,
 }
+
 
 def main():
     configure_logging()
@@ -158,6 +171,7 @@ def main():
     if results is not None:
         control_output(results, args)
     logging.info('Парсер завершил работу.')
+
 
 if __name__ == '__main__':
     main()
