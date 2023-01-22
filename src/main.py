@@ -9,7 +9,7 @@ from tqdm import tqdm
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, EXPECTED_STATUS, MAIN_DOC_URL, MAIN_PEP_URL
 from outputs import control_output
-from utils import find_tag, get_response
+from utils import find_tag, get_response, log_exeption
 
 
 def pep(session):
@@ -24,21 +24,6 @@ def pep(session):
         )
         status = find_tag(main_div, "abbr").text
         return status
-
-    def log(status_type, status_in_cart, cart_url):
-        try:
-            logging.info(
-                f'\nНесовпадающий статус\n'
-                f'{cart_url}\n'
-                f'Ожидаемые статусы: {EXPECTED_STATUS[status_type[1:]]}\n'
-                f'Статус в карточке: {status_in_cart}\n'
-            )
-        except KeyError:
-            logging.info(
-                    f'\nОтсутсвие статуса:\n'
-                    f'{cart_url}\n'
-                    f'Статуса {status_type} не существует\n'
-            )
 
     response = get_response(session, MAIN_PEP_URL)
     if response is None:
@@ -62,8 +47,8 @@ def pep(session):
         pep_real_status.append(status_in_cart)
 
     if inconsistencies:
-        for element in inconsistencies:
-            log(*element)
+        for instance in inconsistencies:
+            log_exeption(*instance)
 
     results = [('Status', 'Quantity')]
     all_pep = 0
