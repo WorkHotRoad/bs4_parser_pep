@@ -25,6 +25,21 @@ def pep(session):
         status = find_tag(main_div, "abbr").text
         return status
 
+    def log(status_type, status_in_cart, cart_url):
+        try:
+            logging.info(
+                f'\nНесовпадающий статус\n'
+                f'{cart_url}\n'
+                f'Ожидаемые статусы: {EXPECTED_STATUS[status_type[1:]]}\n'
+                f'Статус в карточке: {status_in_cart}\n'
+            )
+        except KeyError:
+            logging.info(
+                    f'\nОтсутсвие статуса:\n'
+                    f'{cart_url}\n'
+                    f'Статуса {status_type} не существует\n'
+            )
+
     response = get_response(session, MAIN_PEP_URL)
     if response is None:
         return
@@ -39,26 +54,16 @@ def pep(session):
         detail_url = find_tag(
             i, "a", attrs={"class": "pep reference internal"}
         )["href"]
-        status_in_cart = detail_pep(urljoin(MAIN_PEP_URL, detail_url))
+        cart_url = urljoin(MAIN_PEP_URL, detail_url)
+        status_in_cart = detail_pep(cart_url)
         status_list = [x for value in EXPECTED_STATUS.values() for x in value]
         if status_in_cart not in status_list:
-            inconsistencies.append(
-                (
-                    EXPECTED_STATUS[status_type[1:]],
-                    status_in_cart,
-                    urljoin(MAIN_PEP_URL, detail_url)
-                )
-            )
+            inconsistencies.append((status_type, status_in_cart, cart_url))
         pep_real_status.append(status_in_cart)
 
     if inconsistencies:
-        for i in inconsistencies:
-            logging.info(
-                f'\nНесовпадающий статус\n'
-                f'{i[2]}\n'
-                f'Ожидаемые статусы: {i[0]}\n'
-                f'Статус в карточке: {i[1]}\n'
-            )
+        for element in inconsistencies:
+            log(*element)
 
     results = [('Status', 'Quantity')]
     all_pep = 0
